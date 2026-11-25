@@ -87,12 +87,15 @@ async def monitor(db,client,once=False):
 
 async def ai_job(db):
     row = db.execute("""select e.id,o.title,o.raw,o.url from events e join originals o on o.event=e.id
-        where e.importance in ('HIGH','CRITICAL') and analysis is null and ai_next<=? order by e.id limit 1""",(time.time(),)).fetchone()
+        left join settings wanted on wanted.key='analysis.' || e.id
+        where (wanted.key is not null or e.importance in ('HIGH','CRITICAL'))
+        and analysis is null and ai_next<=? order by wanted.key is null,e.id,o.id desc limit 1""",(time.time(),)).fetchone()
     if row:
         try:
             result = await asyncio.to_thread(analysis.analyze,"\n".join(row[1:]))
             with db:
                 db.execute("update events set analysis=? where id=?",(json.dumps(result,ensure_ascii=False),row[0]))
+                db.execute("delete from settings where key=?",("analysis."+str(row[0]),))
                 db.execute("insert or replace into settings values('ai','подключён')")
         except Exception as exc:
             with db:
@@ -120,7 +123,7 @@ async def video_job(db):
             db.executemany("insert or replace into segments values(?,?,?,?)",[(eid,*g) for g in groups])
             db.execute("update videos set language=?,transcript=? where event=?",
                        (lang,json.dumps(lines,ensure_ascii=False),eid))
-        if all(os.getenv(k) for k in ("LLM_API_KEY","LLM_MODEL","LLM_BASE_URL")):
+        if analysis.provider():
             annotations = []
             for start,end,body in groups:
                 saved = db.execute("select analysis from segment_analysis where event=? and start=?",(eid,start)).fetchone()
@@ -216,7 +219,7 @@ async def run(mode):
             log.warning("Telethon: %s",error(exc))
         with db:
             db.execute("insert or replace into settings values('telethon',?)",("подключён" if client else "отключён",))
-            configured = all(os.getenv(k) for k in ("LLM_API_KEY","LLM_MODEL","LLM_BASE_URL"))
+            configured = bool(analysis.provider())
             db.execute("insert or replace into settings values('ai',?)",("ожидает публикацию" if configured else "отключён",))
         if mode == "once":
             await monitor(db,client,True)

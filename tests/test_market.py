@@ -99,6 +99,22 @@ class MarketTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             analysis.validate({**obj,"facts":"not an array"})
 
+    def test_free_analysis_on_demand(self):
+        self.poll()
+        self.db.execute("update events set importance='LOW'")
+        obj = dict(category="Inflation",summary="Краткий разбор",verification_status="media",confidence=.8,
+                   importance="low",**{k:[] for k in analysis.ARRAYS})
+        payload = json.dumps({"choices":[{"message":{"content":json.dumps(obj)}}]}).encode()
+        with patch.dict(os.environ,OPENROUTER_API_KEY="test"),patch("app.analysis.request",return_value=(payload,{})) as api:
+            self.assertIn("очереди",bot.command(self.db,"/analysis 1"))
+            asyncio.run(main.ai_job(self.db))
+            self.assertEqual(bot.command(self.db,"/analysis 1"),"Краткий разбор")
+            asyncio.run(main.ai_job(self.db))
+            api.assert_called_once()
+            url,headers,data = api.call_args.args
+            self.assertEqual(url,"https://openrouter.ai/api/v1/chat/completions")
+            self.assertEqual(json.loads(data)["model"],"openrouter/free")
+
     def test_transcript(self):
         self.poll()
         self.db.execute("insert into videos(event,url) values(1,'https://www.youtube.com/watch?v=abcdefghijk')")

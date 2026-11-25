@@ -5,6 +5,24 @@ from .collect import request
 ARRAYS = ("facts","affected_markets","affected_instruments","potential_implications","uncertainties")
 
 
+def provider():
+    free_key = os.getenv("OPENROUTER_API_KEY")
+    if free_key:
+        return "https://openrouter.ai/api/v1", "openrouter/free", free_key
+    url, model, key = (os.getenv(k) for k in ("LLM_BASE_URL","LLM_MODEL","LLM_API_KEY"))
+    return (url, model, key) if url and model and key else None
+
+
+def format_result(obj):
+    sections = [obj["summary"]]
+    for field, label in (("facts","Факты из публикации"), ("potential_implications","Возможное влияние"),
+                         ("affected_markets","Рынки"), ("affected_instruments","Инструменты"),
+                         ("uncertainties","Что пока неизвестно")):
+        if obj[field]:
+            sections.append(label+"\n"+"\n".join("• "+value for value in obj[field]))
+    return "\n\n".join(sections)
+
+
 def validate(obj):
     if not isinstance(obj, dict):
         raise ValueError("Ожидается JSON-объект")
@@ -29,9 +47,10 @@ def analyze(text):
               "facts, affected_markets, affected_instruments, potential_implications, uncertainties — массивы строк. "
               "confidence — число от 0 до 1. Отделяй заявления источника от подтвержденных фактов и гипотез. "
               "Не выдумывай цифры и цитаты. Не давай торговых рекомендаций.")
-    data = {"model":os.environ["LLM_MODEL"],"messages":[{"role":"system","content":prompt},{"role":"user","content":text[:30000]}],
+    url, model, key = provider()
+    data = {"model":model,"messages":[{"role":"system","content":prompt},{"role":"user","content":text[:30000]}],
             "response_format":{"type":"json_object"}}
-    raw,_ = request(os.environ["LLM_BASE_URL"].rstrip("/")+"/chat/completions",
-                    {"Authorization":"Bearer "+os.environ["LLM_API_KEY"],"Content-Type":"application/json"},json.dumps(data).encode())
+    raw,_ = request(url.rstrip("/")+"/chat/completions",
+                    {"Authorization":"Bearer "+key,"Content-Type":"application/json"},json.dumps(data).encode())
     return validate(json.loads(json.loads(raw)["choices"][0]["message"]["content"]))
 

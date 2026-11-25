@@ -6,6 +6,7 @@ import time
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from .access import MEMBERS
+from . import analysis
 from .collect import request
 from .store import LEVELS, canonical, clean, setting
 
@@ -165,8 +166,18 @@ def command(db,message):
     if cmd == "/saved":
         return "\n".join(f"/event {r[0]} · {r[1]}" for r in db.execute("select id,title from events where saved=1 order by id desc limit 30")) or "Избранное пусто"
     if cmd == "/analysis":
-        row = db.execute("select analysis from events where id=?",(int(arg),)).fetchone()
-        return json.dumps(json.loads(row[0]),ensure_ascii=False,indent=2) if row and row[0] else "AI-анализ пока отсутствует"
+        if not arg.isdecimal():
+            return "Укажи номер новости, например /analysis 1"
+        eid = int(arg)
+        row = db.execute("select analysis from events where id=?",(eid,)).fetchone()
+        if not row:
+            return "Новость не найдена. Посмотри номера в /recent."
+        if row[0]:
+            return analysis.format_result(json.loads(row[0]))
+        if not analysis.provider():
+            return "ИИ выключен. Добавь OPENROUTER_API_KEY в .env на компьютере с ботом и перезапусти программу."
+        db.execute("insert or ignore into settings values(?, '1')",("analysis."+str(eid),))
+        return f"Новость №{eid} в очереди. Через минуту нажми «AI-анализ» ещё раз. Состояние сервиса — /status."
     if cmd == "/schedule":
         date,title,source,cat = [p.strip() for p in arg.split("|")]
         dt = datetime.fromisoformat(date)
