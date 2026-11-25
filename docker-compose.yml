@@ -1,0 +1,14 @@
+services:
+  monitor:
+    build:
+      context: .
+      args:
+        WITH_WHISPER: ${WHISPER_ENABLED:-0}
+    env_file: .env
+    restart: unless-stopped
+    volumes:
+      - market-data:/srv/market/data
+      - ./config:/srv/market/config:ro
+volumes:
+  market-data:
+

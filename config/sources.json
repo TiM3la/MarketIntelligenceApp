@@ -1,0 +1,15 @@
+[
+  "Банк России",
+  "Московская биржа",
+  "Минфин России",
+  "Росстат",
+  "Интерфакс",
+  "EIA",
+  "OPEC",
+  "IEA",
+  "CFTC",
+  "Baker Hughes",
+  "Reuters Energy",
+  {"name":"Federal Reserve","url":"https://www.federalreserve.gov/feeds/press_all.xml","category":"Central Banks","trust":2},
+  "BLS"
+]

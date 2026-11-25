@@ -1,0 +1,21 @@
+{
+  "Macroeconomics": "ввп,gdp,экономический рост",
+  "Central Banks": "цб,банк россии,federal reserve",
+  "Inflation": "инфляц,inflation,cpi",
+  "Interest Rates": "ставк,interest rate",
+  "Oil Supply": "добыч,oil supply",
+  "Oil Demand": "спрос на нефть,oil demand",
+  "Oil Inventories": "запасы нефти,oil inventories",
+  "OPEC": "опек,opec",
+  "Geopolitics": "геополит,geopolit",
+  "Sanctions": "санкци,sanction",
+  "Energy": "нефть,energy,crude",
+  "Currency": "курс рубля,currency",
+  "Russian Equities": "мосбирж,russian equities",
+  "Corporate News": "выручк,earnings",
+  "Dividends": "дивиденд,dividend",
+  "Futures": "фьючерс,futures",
+  "Exchange Rules": "правила торгов,trading rules",
+  "Trading Infrastructure": "приостановка торгов,trading halt",
+  "Other": ""
+}
